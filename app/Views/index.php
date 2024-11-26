@@ -100,159 +100,83 @@
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-  $(document).ready(function() {
-    const postSchema = {
-      title: {
-        title: "Post Title",
-        type: "string",
-        required: true
-      },
-      category: {
-        title: "Post Category",
-        type: "string",
-        required: true
-      },
-      body: {
-        title: "Post Body",
-        type: "string",
-        required: true
-      },
-      image: {
-        title: "Post Image",
-        type: "string",
-        required: true,
-        validate: false
-      }
-    };
-
-    const postForm = [
-      {
-        key: "title",
-        type: "text",
-      },
-      {
-        key: "category",
-        type: "text",
-      },
-      {
-        key: "body",
-        type: "textarea",
-      },
-      {
-        key: "image",
-        type: "file",
-        accept: ".jpg,.jpeg,.png",
-      },
-    ];
-
-    // Load form dynamically for Add Post
-    $("#add_post_modal").on('shown.bs.modal', function() {
-      console.log("Modal initialized and form should render");
-      $("form#add_post_form").empty();
-
-      // Initialize form using jsonForm for add post
-      $("form#add_post_form").jsonForm({
-        schema: postSchema,
-        form: postForm,
-        onSubmit: function(errors, values) {
-          if (errors) {
-            alert("Form has errors!");
-          } else {
-            let formData = new FormData();
-            formData.append('title', values.title);
-            formData.append('category', values.category);
-            formData.append('body', values.body);
-            formData.append('image', $('#add_post_form input[type="file"]')[0].files[0]);
-
-            $.ajax({
-              url: '<?= base_url('post/add') ?>',
-              method: 'post',
-              data: formData,
-              contentType: false,
-              processData: false,
-              dataType: 'json',
-              success: function(response) {
-                console.log("AJAX success:", response);
-                if (response.error) {
-                  alert(response.message);
-                } else {
-                  $("#add_post_modal").modal('hide');
-                  Swal.fire('Added', response.message, 'success');
-                  fetchAllPosts();
-                }
-              }
-            });
-          }
+    $(document).ready(function() {
+      const postSchema = {
+        title: {
+          title: "Post Title",
+          type: "string",
+          required: true
+        },
+        category: {
+          title: "Post Category",
+          type: "string",
+          required: true
+        },
+        body: {
+          title: "Post Body",
+          type: "string",
+          required: true
+        },
+        image: {
+          title: "Post Image",
+          type: "string",
+          required: true,
+          validate: false
         }
-      });
-      console.log("JSONForm rendered for Add Post");
-    });
+      };
 
-    // Trigger form submit manually when Add Post button is clicked
-    $("#add_post_btn").on('click', function() {
-    // Trigger the form submit by calling jsonForm's onSubmit method
-    $("form#add_post_form").submit();
-    });
+      const postForm = [{
+          key: "title",
+          type: "text",
+        },
+        {
+          key: "category",
+          type: "text",
+        },
+        {
+          key: "body",
+          type: "textarea",
+        },
+        {
+          key: "image",
+          type: "file",
+          accept: ".jpg,.jpeg,.png",
+        },
+      ];
 
-    // Load form dynamically for Edit Post
-    $(document).on('click', '.post_edit_btn', function() {
-  const id = $(this).attr('id');
-  $.ajax({
-    url: '<?= base_url('post/edit/') ?>/' + id,
-    method: 'get',
-    success: function(response) {
-      const postData = response.message;
+      // Load form dynamically for Add Post
+      $("#add_post_modal").on('shown.bs.modal', function() {
+        console.log("Modal initialized and form should render");
+        $("form#add_post_form").empty();
 
-      // Reset schema with the existing post data for editing
-      postSchema.title.default = postData.title;
-      postSchema.category.default = postData.category;
-      postSchema.body.default = postData.body;
-      postSchema.image.default = postData.image;
-
-      // Open the edit modal and render the form
-      $("#edit_post_modal").on('shown.bs.modal', function() {
-        $("form#edit_post_form").empty(); // Clear any existing form content
-
-        // Initialize form using jsonForm for edit post
-        $("form#edit_post_form").jsonForm({
+        // Initialize form using jsonForm for add post
+        $("form#add_post_form").jsonForm({
           schema: postSchema,
           form: postForm,
           onSubmit: function(errors, values) {
             if (errors) {
               alert("Form has errors!");
             } else {
-              // Create a new FormData object for the form submission
               let formData = new FormData();
+              formData.append('title', values.title);
+              formData.append('category', values.category);
+              formData.append('body', values.body);
+              formData.append('image', $('#add_post_form input[type="file"]')[0].files[0]);
 
-              // Append the form fields data to FormData
-              formData.append('id', id);  // Add the post ID
-              formData.append('title', values.title); // Add the title field
-              formData.append('category', values.category); // Add the category field
-              formData.append('body', values.body); // Add the body field
-
-              // Handle image upload (if any)
-              let imageFile = $("input[name='image']")[0].files[0]; // Get the file input
-              if (imageFile) {
-                formData.append('image', imageFile); // Add the image file
-              } else {
-                // If no new image is selected, append the old image value
-                formData.append('old_image', postData.image);
-              }
-
-              // Perform the AJAX request to update the post
               $.ajax({
-                url: '<?= base_url('post/update') ?>',
+                url: '<?= base_url('post/add') ?>',
                 method: 'post',
                 data: formData,
+                contentType: false,
+                processData: false,
                 dataType: 'json',
-                processData: false,  // Don't process the data
-                contentType: false,  // Let jQuery set content-type to multipart/form-data
                 success: function(response) {
+                  console.log("AJAX success:", response);
                   if (response.error) {
                     alert(response.message);
                   } else {
-                    $("#edit_post_modal").modal('hide');
-                    Swal.fire('Updated', response.message, 'success');
+                    $("#add_post_modal").modal('hide');
+                    Swal.fire('Added', response.message, 'success');
                     fetchAllPosts();
                   }
                 }
@@ -260,79 +184,154 @@
             }
           }
         });
+        console.log("JSONForm rendered for Add Post");
       });
-    }
-  });
-});
 
-// Trigger form submit manually when Update Post button is clicked
-$("#edit_post_btn").on('click', function() {
-  // Trigger the form submit by calling jsonForm's onSubmit method
-  $("form#edit_post_form").submit();
-});
-
-    // Fetch all posts
-    function fetchAllPosts() {
-      $.ajax({
-        url: '<?= base_url('post/fetch') ?>',
-        method: 'get',
-        success: function(response) {
-          $("#show_posts").html(response.message);
-        }
+      // Trigger form submit manually when Add Post button is clicked
+      $("#add_post_btn").on('click', function() {
+        // Trigger the form submit by calling jsonForm's onSubmit method
+        $("form#add_post_form").submit();
       });
-    }
 
-    fetchAllPosts();
+      // Load form dynamically for Edit Post
+      $(document).on('click', '.post_edit_btn', function() {
+        const id = $(this).attr('id');
+        $.ajax({
+          url: '<?= base_url('post/edit/') ?>/' + id,
+          method: 'get',
+          success: function(response) {
+            const postData = response.message;
 
-    // Delete post ajax request
-    $(document).delegate('.post_delete_btn', 'click', function(e) {
-      e.preventDefault();
-      const id = $(this).attr('id');
-      Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          $.ajax({
-            url: '<?= base_url('post/delete/') ?>/' + id,
-            method: 'get',
-            success: function(response) {
-              Swal.fire(
-                'Deleted!',
-                response.message,
-                'success'
-              )
-              fetchAllPosts();
-            }
-          });
-        }
-      })
+            // Reset schema with the existing post data for editing
+            postSchema.title.default = postData.title;
+            postSchema.category.default = postData.category;
+            postSchema.body.default = postData.body;
+            postSchema.image.default = postData.image;
+
+            // Open the edit modal and render the form
+            $("#edit_post_modal").on('shown.bs.modal', function() {
+              $("form#edit_post_form").empty(); // Clear any existing form content
+
+              // Initialize form using jsonForm for edit post
+              $("form#edit_post_form").jsonForm({
+                schema: postSchema,
+                form: postForm,
+                onSubmit: function(errors, values) {
+                  if (errors) {
+                    alert("Form has errors!");
+                  } else {
+                    // Create a new FormData object for the form submission
+                    let formData = new FormData();
+
+                    // Append the form fields data to FormData
+                    formData.append('id', id); // Add the post ID
+                    formData.append('title', values.title); // Add the title field
+                    formData.append('category', values.category); // Add the category field
+                    formData.append('body', values.body); // Add the body field
+
+                    // Handle image upload (if any)
+                    let imageFile = $("input[name='image']")[0].files[0]; // Get the file input
+                    if (imageFile) {
+                      formData.append('image', imageFile); // Add the image file
+                    } else {
+                      // If no new image is selected, append the old image value
+                      formData.append('old_image', postData.image);
+                    }
+
+                    // Perform the AJAX request to update the post
+                    $.ajax({
+                      url: '<?= base_url('post/update') ?>',
+                      method: 'post',
+                      data: formData,
+                      dataType: 'json',
+                      processData: false, // Don't process the data
+                      contentType: false, // Let jQuery set content-type to multipart/form-data
+                      success: function(response) {
+                        if (response.error) {
+                          alert(response.message);
+                        } else {
+                          $("#edit_post_modal").modal('hide');
+                          Swal.fire('Updated', response.message, 'success');
+                          fetchAllPosts();
+                        }
+                      }
+                    });
+                  }
+                }
+              });
+            });
+          }
+        });
+      });
+
+      // Trigger form submit manually when Update Post button is clicked
+      $("#edit_post_btn").on('click', function() {
+        // Trigger the form submit by calling jsonForm's onSubmit method
+        $("form#edit_post_form").submit();
+      });
+
+      // Fetch all posts
+      function fetchAllPosts() {
+        $.ajax({
+          url: '<?= base_url('post/fetch') ?>',
+          method: 'get',
+          success: function(response) {
+            $("#show_posts").html(response.message);
+          }
+        });
+      }
+
+      fetchAllPosts();
+
+      // Delete post ajax request
+      $(document).delegate('.post_delete_btn', 'click', function(e) {
+        e.preventDefault();
+        const id = $(this).attr('id');
+        Swal.fire({
+          title: 'Are you sure?',
+          text: "You won't be able to revert this!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            $.ajax({
+              url: '<?= base_url('post/delete/') ?>/' + id,
+              method: 'get',
+              success: function(response) {
+                Swal.fire(
+                  'Deleted!',
+                  response.message,
+                  'success'
+                )
+                fetchAllPosts();
+              }
+            });
+          }
+        })
+      });
+
+      // Post detail ajax request
+      $(document).delegate('.post_detail_btn', 'click', function(e) {
+        e.preventDefault();
+        const id = $(this).attr('id');
+        $.ajax({
+          url: '<?= base_url('post/detail/') ?>/' + id,
+          method: 'get',
+          dataType: 'json',
+          success: function(response) {
+            $("#detail_post_image").attr('src', '<?= base_url('uploads/avatar/') ?>/' + response.message.image);
+            $("#detail_post_title").text(response.message.title);
+            $("#detail_post_category").text(response.message.category);
+            $("#detail_post_body").text(response.message.body);
+            $("#detail_post_created").text(response.message.created_at);
+          }
+        });
+      });
     });
-
-    // Post detail ajax request
-    $(document).delegate('.post_detail_btn', 'click', function(e) {
-      e.preventDefault();
-      const id = $(this).attr('id');
-      $.ajax({
-        url: '<?= base_url('post/detail/') ?>/' + id,
-        method: 'get',
-        dataType: 'json',
-        success: function(response) {
-          $("#detail_post_image").attr('src', '<?= base_url('uploads/avatar/') ?>/' + response.message.image);
-          $("#detail_post_title").text(response.message.title);
-          $("#detail_post_category").text(response.message.category);
-          $("#detail_post_body").text(response.message.body);
-          $("#detail_post_created").text(response.message.created_at);
-        }
-      });
-    });
-  });
-</script>
+  </script>
 
 </body>
 

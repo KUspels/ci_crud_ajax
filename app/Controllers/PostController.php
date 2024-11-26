@@ -3,18 +3,21 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use App\Models\PostModel; 
+use App\Models\PostModel;
 
-class PostController extends BaseController {
-    public function index() {
+class PostController extends BaseController
+{
+    public function index()
+    {
         return view('index');
     }
 
     // Handle add new post ajax request
-    public function add() {
+    public function add()
+    {
         // Get the uploaded image file
         $file = $this->request->getFile('image');
-        
+
         // Ensure the file is valid and handle errors
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -30,7 +33,7 @@ class PostController extends BaseController {
 
         // Generate a random filename for the uploaded image
         $fileName = $file->getRandomName();
-        
+
         // Move the file to the 'uploads/avatar' directory
         $file->move('uploads/avatar', $fileName);
 
@@ -44,7 +47,7 @@ class PostController extends BaseController {
         ];
 
         // Save the post data to the database
-        $postModel = new PostModel(); 
+        $postModel = new PostModel();
         $postModel->save($data);
 
         return $this->response->setJSON([
@@ -55,8 +58,9 @@ class PostController extends BaseController {
 
 
     // Other methods (edit, update, delete, detail) follow the same pattern
-    public function edit($id = null) {
-        $postModel = new PostModel(); 
+    public function edit($id = null)
+    {
+        $postModel = new PostModel();
         $post = $postModel->find($id);
         return $this->response->setJSON([
             'error' => false,
@@ -66,19 +70,21 @@ class PostController extends BaseController {
 
 
     // Handle fetch all posts ajax request
-    public function fetch() {
+    public function fetch()
+    {
         $postModel = new PostModel();
         $posts = $postModel->findAll();
-    
+
         $data = view('posts_list', ['posts' => $posts]);
-    
+
         return $this->response->setJSON([
             'error' => false,
             'message' => $data,
         ]);
     }
 
-    public function update() {
+    public function update()
+    {
         $id = $this->request->getPost('id');
         $file = $this->request->getFile('image');
         $fileName = $file->getFilename();
@@ -107,7 +113,7 @@ class PostController extends BaseController {
         ];
 
         // Update the post in the database
-        $postModel = new PostModel(); 
+        $postModel = new PostModel();
         $postModel->update($id, $data);
 
         return $this->response->setJSON([
@@ -116,8 +122,9 @@ class PostController extends BaseController {
         ]);
     }
 
-    public function delete($id = null) {
-        $postModel = new PostModel(); 
+    public function delete($id = null)
+    {
+        $postModel = new PostModel();
         $post = $postModel->find($id);
         $postModel->delete($id);
         unlink('uploads/avatar/' . $post['image']);
@@ -127,21 +134,21 @@ class PostController extends BaseController {
         ]);
     }
 
-    public function detail($id = null) {
-        $postModel = new PostModel(); 
+    public function detail($id = null)
+    {
+        $postModel = new PostModel();
         $post = $postModel->find($id);
-    
+
         if ($post) {
             return $this->response->setJSON([
                 'error' => false,
-                'data' => $post, 
+                'data' => $post,
             ]);
         } else {
             return $this->response->setJSON([
                 'error' => true,
-                'message' => 'Post not found', 
+                'message' => 'Post not found',
             ]);
         }
     }
-    
 }
