@@ -7,11 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRUD App Using CI 4 and Ajax</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://underscorejs.org/underscore-min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/jsonform/jsonform/lib/jsonform.js"></script>
 </head>
 
 <body>
-  <!-- add new post modal start -->
   <!-- Modal Form: Add Post -->
   <div class="modal fade" id="add_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -20,44 +21,19 @@
           <h5 class="modal-title" id="staticBackdropLabel">Add New Post</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form action="#" method="POST" enctype="multipart/form-data" id="add_post_form" novalidate>
-          <div class="modal-body p-5">
-            <div class="mb-3">
-              <label>Post Title</label>
-              <input type="text" name="title" class="form-control" placeholder="Title" required>
-              <div class="invalid-feedback">Post title is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Category</label>
-              <input type="text" name="category" class="form-control" placeholder="Category" required>
-              <div class="invalid-feedback">Post category is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Body</label>
-              <textarea name="body" class="form-control" rows="4" placeholder="Body" required></textarea>
-              <div class="invalid-feedback">Post body is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Image</label>
-              <input type="file" name="file" id="image" class="form-control" required>
-              <div class="invalid-feedback">Post image is required!</div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" id="add_post_btn">Add Post</button>
-          </div>
-        </form>
+        <div class="modal-body p-5">
+          <!-- JSONForm will be rendered here -->
+          <form id="add_post_form"></form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary" id="add_post_btn">Add Post</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- add new post modal end -->
-
-  <!-- edit post modal start -->
+  <!-- Modal Form: Edit Post -->
   <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -65,44 +41,17 @@
           <h5 class="modal-title" id="staticBackdropLabel">Edit Post</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form action="#" method="POST" enctype="multipart/form-data" id="edit_post_form" novalidate>
-          <input type="hidden" name="id" id="pid">
-          <input type="hidden" name="old_image" id="old_image">
-          <div class="modal-body p-5">
-            <div class="mb-3">
-              <label>Post Title</label>
-              <input type="text" name="title" id="title" class="form-control" placeholder="Title" required>
-              <div class="invalid-feedback">Post title is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Category</label>
-              <input type="text" name="category" id="category" class="form-control" placeholder="Category" required>
-              <div class="invalid-feedback">Post category is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Body</label>
-              <textarea name="body" class="form-control" rows="4" id="body" placeholder="Body" required></textarea>
-              <div class="invalid-feedback">Post body is required!</div>
-            </div>
-
-            <div class="mb-3">
-              <label>Post Image</label>
-              <input type="file" name="file" class="form-control">
-              <div class="invalid-feedback">Post image is required!</div>
-              <div id="post_image"></div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" id="edit_post_btn">Update Post</button>
-          </div>
-        </form>
+        <div class="modal-body p-5">
+          <!-- JSONForm will be rendered here -->
+          <form id="edit_post_form"></form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="edit_post_btn">Update Post</button>
+        </div>
       </div>
     </div>
   </div>
-  <!-- edit post modal end -->
 
   <!-- detail post modal start -->
   <div class="modal fade" id="detail_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -127,6 +76,7 @@
   </div>
   <!-- detail post modal end -->
 
+  <!-- Posts Listing -->
   <div class="container">
     <div class="row my-4">
       <div class="col-lg-12">
@@ -144,10 +94,153 @@
       </div>
     </div>
   </div>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <script>
+    $(document).ready(function() {
+      const postSchema = {
+        title: {
+          title: "Post Title",
+          type: "string",
+          required: true
+        },
+        category: {
+          title: "Post Category",
+          type: "string",
+          required: true
+        },
+        body: {
+          title: "Post Body",
+          type: "string",
+          required: true
+        },
+        image: {
+          title: "Post Image",
+          type: "string",
+          required: true
+        }
+      };
+
+      const postForm = [
+        {
+          key: "title",
+          type: "text",
+        },
+        {
+          key: "category",
+          type: "text",
+        },
+        {
+          key: "body",
+          type: "textarea",
+        },
+        {
+          key: "image",
+          type: "file",
+          accept: ".jpg,.jpeg,.png",
+        },
+      ];
+
+      // Load form dynamically for Add Post
+      $("#add_post_modal").on('shown.bs.modal', function() {
+        console.log("Modal initialized and form should render");
+        $("form#add_post_form").empty();
+
+        $("form#add_post_form").jsonForm({
+          schema: postSchema,
+          form: postForm,
+          onSubmit: function(errors, values) {
+            if (errors) {
+              alert("Form has errors!");
+            } else {
+              $.ajax({
+                url: '<?= base_url('post/add') ?>',
+                method: 'post',
+                data: values,
+                dataType: 'json',
+                success: function(response) {
+                  console.log("AJAX success:", response);
+                  if (response.error) {
+                    alert(response.message);
+                  } else {
+                    $("#add_post_modal").modal('hide');
+                    Swal.fire('Added', response.message, 'success');
+                    fetchAllPosts();
+                  }
+                }
+                
+                
+              });
+            }
+          }
+        });
+        console.log("JSONForm rendered for Add Post");
+      });
+
+      // Load form dynamically for Edit Post
+      $(document).on('click', '.post_edit_btn', function() {
+    const id = $(this).attr('id');
+    $.ajax({
+        url: '<?= base_url('post/edit/') ?>/' + id,
+        method: 'get',
+        success: function(response) {
+            const postData = response.message;
+            // Update the schema with the post's existing data
+            postSchema.title.default = postData.title;
+            postSchema.category.default = postData.category;
+            postSchema.body.default = postData.body;  // Ensure body field is updated
+
+            // Open the edit modal and render the form
+            $("#edit_post_modal").on('shown.bs.modal', function() {
+                $("form#edit_post_form").empty(); // Clear any existing form content
+                $("form#edit_post_form").jsonForm({
+                    schema: postSchema,
+                    form: postForm,
+                    onSubmit: function(errors, values) {
+                        if (errors) {
+                            alert("Form has errors!");
+                        } else {
+                            $.ajax({
+                                url: '<?= base_url('post/update') ?>',
+                                method: 'post',
+                                data: values,
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.error) {
+                                        alert(response.message);
+                                    } else {
+                                        $("#edit_post_modal").modal('hide');
+                                        Swal.fire('Updated', response.message, 'success');
+                                        fetchAllPosts();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+        }
+    });
+});
+
+
+      // Fetch all posts
+      function fetchAllPosts() {
+        $.ajax({
+          url: '<?= base_url('post/fetch') ?>',
+          method: 'get',
+          success: function(response) {
+            $("#show_posts").html(response.message);
+          }
+        });
+      }
+
+      fetchAllPosts();
+    });
+    
     $(function() {
       // add new post ajax request
       $("#add_post_form").submit(function(e) {
@@ -167,27 +260,24 @@
             processData: false,
             dataType: 'json',
             success: function(response) {
-              if (response.error) {
-                $("#image").addClass('is-invalid');
-                $("#image").next().text(response.message.image);
-              } else {
-                $("#add_post_modal").modal('hide');
-                $("#add_post_form")[0].reset();
-                $("#image").removeClass('is-invalid');
-                $("#image").next().text('');
-                $("#add_post_form").removeClass('was-validated');
-                Swal.fire(
-                  'Added',
-                  response.message,
-                  'success'
-                );
-                fetchAllPosts();
-              }
-              $("#add_post_btn").text("Add Post");
+                if (response.error) {
+                    $("#image").addClass('is-invalid');
+                    $("#image").next().text(response.message.image);
+                } else {
+                    $("#add_post_modal").modal('hide');
+                    $("#add_post_form")[0].reset();
+                    $("#image").removeClass('is-invalid');
+                    $("#image").next().text('');
+                    $("#add_post_form").removeClass('was-validated');
+                    Swal.fire('Added', response.message, 'success');
+                    fetchAllPosts();
+                }
+                $("#add_post_btn").text("Add Post");
             }
-          });
-        }
-      });
+        });
+      }
+    });
+
 
       // edit post ajax request
       $(document).delegate('.post_edit_btn', 'click', function(e) {
@@ -298,8 +388,8 @@
         });
       }
     });
-  </script>
 
+  </script>
 </body>
 
-</html> 
+</html>

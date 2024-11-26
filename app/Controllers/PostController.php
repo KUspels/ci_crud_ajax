@@ -12,7 +12,7 @@ class PostController extends BaseController {
 
     // Handle add new post ajax request
     public function add() {
-        $file = $this->request->getFile('file');
+        $file = $this->request->getFile('image');
         $fileName = $file->getRandomName();
 
         $data = [
@@ -25,7 +25,7 @@ class PostController extends BaseController {
 
         $validation = \Config\Services::validation();
         $validation->setRules([
-            'image' => 'uploaded[file]|max_size[file,1024]|is_image[file]|mime_in[file,image/jpg,image/jpeg,image/png]',
+            'image' => 'uploaded[image]|max_size[file,1024]|is_image[file]|mime_in[file,image/jpg,image/jpeg,image/png]',
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
@@ -70,7 +70,7 @@ class PostController extends BaseController {
 
     public function update() {
         $id = $this->request->getPost('id');
-        $file = $this->request->getFile('file');
+        $file = $this->request->getFile('image');
         $fileName = $file->getFilename();
 
         if ($fileName != '') {
