@@ -200,13 +200,7 @@
           method: 'get',
           success: function(response) {
             const postData = response.message;
-
-            // Reset schema with the existing post data for editing
-            postSchema.title.default = postData.title;
-            postSchema.category.default = postData.category;
-            postSchema.body.default = postData.body;
-            postSchema.image.default = postData.image;
-
+            
             // Open the edit modal and render the form
             $("#edit_post_modal").on('shown.bs.modal', function() {
               $("form#edit_post_form").empty(); // Clear any existing form content
@@ -215,6 +209,12 @@
               $("form#edit_post_form").jsonForm({
                 schema: postSchema,
                 form: postForm,
+                value: {
+                  title: postData.title,
+                  category: postData.category,
+                  body: postData.body,
+                  image: postData.image
+                },
                 onSubmit: function(errors, values) {
                   if (errors) {
                     alert("Form has errors!");
