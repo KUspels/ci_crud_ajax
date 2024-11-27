@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
@@ -37,7 +38,8 @@ class CreatePostsTable extends Migration
             ],
             'updated_at'  => [
                 'type'    => 'TIMESTAMP',
-                'null'    => true,
+                'null'    => false,
+                'default' => null, // Remove default value here
             ],
         ]);
         $this->forge->addKey('id', true);  // Primary key on 'id'
@@ -46,6 +48,7 @@ class CreatePostsTable extends Migration
         // Execute custom SQL for setting DEFAULT CURRENT_TIMESTAMP
         $db = \Config\Database::connect();
         $db->query("ALTER TABLE posts ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP");
+        $db->query("ALTER TABLE posts ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP");
     }
 
     public function down()
