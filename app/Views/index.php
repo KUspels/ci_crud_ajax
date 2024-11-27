@@ -120,8 +120,7 @@
         image: {
           title: "Post Image",
           type: "string",
-          required: true,
-          validate: false
+          required: true
         }
       };
 
