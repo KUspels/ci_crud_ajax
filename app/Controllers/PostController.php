@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\PostModel;
+use App\Models\CategoryModel;
 
 class PostController extends BaseController
 {
@@ -11,6 +12,27 @@ class PostController extends BaseController
     {
         return view('index');
     }
+
+    // New method to fetch categories
+    public function getCategories()
+{
+    $categoryModel = new CategoryModel();
+    $categories = $categoryModel->findAll();
+
+    // Map database fields to expected structure
+    $formattedCategories = array_map(function ($category) {
+        return [
+            'id' => $category['id'], // Ensure 'id' exists in your table
+            'category_title' => $category['category_title'], // Map 'name' (or other DB column) to 'category_title'
+        ];
+    }, $categories);
+
+    return $this->response->setJSON([
+        'error' => false,
+        'data' => $formattedCategories,
+    ]);
+}
+
 
     // Handle add new post ajax request
     public function add()
@@ -40,7 +62,7 @@ class PostController extends BaseController
         // Prepare post data
         $data = [
             'title' => $this->request->getPost('title'),
-            'category' => $this->request->getPost('category'),
+            'category' => json_encode($this->request->getPost('category')),
             'body' => $this->request->getPost('body'),
             'image' => $fileName, // Store the filename of the uploaded image
             'created_at' => date('Y-m-d H:i:s'),
@@ -84,43 +106,63 @@ class PostController extends BaseController
     }
 
     public function update()
-    {
-        $id = $this->request->getPost('id');
-        $file = $this->request->getFile('image');
-        $fileName = $file->getFilename();
+{
+    $id = $this->request->getPost('id');
+    $file = $this->request->getFile('image');
 
-        // If a new image is uploaded
-        if ($fileName != '') {
-            $fileName = $file->getRandomName();
-            $file->move('uploads/avatar', $fileName);
+    // Initialize the filename with the old image
+    $fileName = $this->request->getPost('old_image');
 
-            // Remove the old image if exists
-            if ($this->request->getPost('old_image') != '') {
-                unlink('uploads/avatar/' . $this->request->getPost('old_image'));
-            }
-        } else {
-            // Use the old image if none is uploaded
-            $fileName = $this->request->getPost('old_image');
+    // If a new image is uploaded
+    if ($file && $file->isValid() && !$file->hasMoved()) {
+        $fileName = $file->getRandomName();
+        $file->move('uploads/avatar', $fileName);
+
+        // Remove the old image if it exists
+        $oldImage = $this->request->getPost('old_image');
+        if (!empty($oldImage) && file_exists('uploads/avatar/' . $oldImage)) {
+            unlink('uploads/avatar/' . $oldImage);
         }
+    }
 
-        // Prepare post data
-        $data = [
-            'title' => $this->request->getPost('title'),
-            'category' => $this->request->getPost('category'),
-            'body' => $this->request->getPost('body'),
-            'image' => $fileName, // Save the new or old image filename
-            'updated_at' => date('Y-m-d H:i:s'),
-        ];
+    // Decode the category field
+    $category = $this->request->getPost('category');
+    $decodedCategory = json_decode($category, true);
 
-        // Update the post in the database
-        $postModel = new PostModel();
+    if (!$decodedCategory || !is_array($decodedCategory)) {
+        return $this->response->setJSON([
+            'error' => true,
+            'message' => 'Invalid category data.',
+        ]);
+    }
+
+    // Prepare post data
+    $data = [
+        'title' => $this->request->getPost('title'),
+        'category' => json_encode($decodedCategory), // Save as JSON string
+        'body' => $this->request->getPost('body'),
+        'image' => $fileName, // Save the new or old image filename
+        'updated_at' => date('Y-m-d H:i:s'),
+    ];
+
+    // Update the post in the database
+    $postModel = new PostModel();
+
+    try {
         $postModel->update($id, $data);
 
         return $this->response->setJSON([
             'error' => false,
             'message' => 'Successfully updated post!',
         ]);
+    } catch (\Exception $e) {
+        return $this->response->setJSON([
+            'error' => true,
+            'message' => 'Failed to update post: ' . $e->getMessage(),
+        ]);
     }
+}
+
 
     public function delete($id = null)
     {

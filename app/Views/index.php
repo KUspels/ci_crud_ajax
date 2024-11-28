@@ -6,15 +6,26 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRUD App Using CI 4 and Ajax</title>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://underscorejs.org/underscore-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/gh/jsonform/jsonform/lib/jsonform.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+  <style>
+    .select2-container {
+      z-index: 1055 !important;
+      /* Higher than Bootstrap's modal z-index */
+    }
+  </style>
 </head>
 
 <body>
   <!-- Modal Form: Add Post -->
-  <div class="modal fade" id="add_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal fade" id="add_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="inert">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -34,7 +45,7 @@
   </div>
 
   <!-- Modal Form: Edit Post -->
-  <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="inert">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -96,8 +107,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
 
   <script>
     $(document).ready(function() {
@@ -109,7 +120,11 @@
         },
         category: {
           title: "Post Category",
-          type: "string",
+          type: "array",
+          items: {
+            type: "string",
+            enum: [],
+          },
           required: true
         },
         body: {
@@ -130,7 +145,8 @@
         },
         {
           key: "category",
-          type: "text",
+          type: "select",
+          options: [],
         },
         {
           key: "body",
@@ -142,9 +158,14 @@
           accept: ".jpg,.jpeg,.png",
         },
       ];
-
       // Load form dynamically for Add Post
       $("#add_post_modal").on('shown.bs.modal', function() {
+        $('#jsonform-1-elt-category').select2({
+          placeholder: "Select categories",
+          allowClear: true,
+          dropdownParent: $('#add_post_modal')
+        });
+        populateCategoryDropdownForForm([]);
         console.log("Modal initialized and form should render");
         $("form#add_post_form").empty();
 
@@ -158,7 +179,7 @@
             } else {
               let formData = new FormData();
               formData.append('title', values.title);
-              formData.append('category', values.category);
+              formData.append('category', JSON.stringify(values.category));
               formData.append('body', values.body);
               formData.append('image', $('#add_post_form input[type="file"]')[0].files[0]);
 
@@ -186,82 +207,103 @@
         console.log("JSONForm rendered for Add Post");
       });
 
+
+
       // Trigger form submit manually when Add Post button is clicked
       $("#add_post_btn").on('click', function() {
         // Trigger the form submit by calling jsonForm's onSubmit method
         $("form#add_post_form").submit();
       });
 
-      // Load form dynamically for Edit Post
-      $(document).on('click', '.post_edit_btn', function() {
-        const id = $(this).attr('id');
-        $.ajax({
-          url: '<?= base_url('post/edit/') ?>/' + id,
-          method: 'get',
-          success: function(response) {
-            const postData = response.message;
-            
-            // Open the edit modal and render the form
-            $("#edit_post_modal").on('shown.bs.modal', function() {
-              $("form#edit_post_form").empty(); // Clear any existing form content
+      $(document).on('click', '.post_edit_btn', function () {
+    const id = $(this).attr('id'); // Get post ID
 
-              // Initialize form using jsonForm for edit post
-              $("form#edit_post_form").jsonForm({
-                schema: postSchema,
-                form: postForm,
-                value: {
-                  title: postData.title,
-                  category: postData.category,
-                  body: postData.body,
-                  image: postData.image
-                },
-                onSubmit: function(errors, values) {
-                  if (errors) {
-                    alert("Form has errors!");
-                  } else {
-                    // Create a new FormData object for the form submission
-                    let formData = new FormData();
+    // Fetch the post data based on the ID
+    $.ajax({
+        url: '<?= base_url('post/edit/') ?>/' + id,
+        method: 'get',
+        dataType: 'json',
+        success: function (response) {
+            const postData = response.message; // Data for the selected post
+            console.log("Fetched post data:", postData);
 
-                    // Append the form fields data to FormData
-                    formData.append('id', id); // Add the post ID
-                    formData.append('title', values.title); // Add the title field
-                    formData.append('category', values.category); // Add the category field
-                    formData.append('body', values.body); // Add the body field
+            // Populate form dynamically
+            $("#edit_post_modal").off('shown.bs.modal').on('shown.bs.modal', function () {
+                $('#jsonform-1-elt-category').select2({
+                    placeholder: "Select categories",
+                    allowClear: true,
+                    dropdownParent: $('#edit_post_modal')
+                });
 
-                    // Handle image upload (if any)
-                    let imageFile = $("input[name='image']")[0].files[0]; // Get the file input
-                    if (imageFile) {
-                      formData.append('image', imageFile); // Add the image file
-                    } else {
-                      // If no new image is selected, append the old image value
-                      formData.append('old_image', postData.image);
-                    }
+                // Clear and initialize the form
+                $("form#edit_post_form").empty();
 
-                    // Perform the AJAX request to update the post
-                    $.ajax({
-                      url: '<?= base_url('post/update') ?>',
-                      method: 'post',
-                      data: formData,
-                      dataType: 'json',
-                      processData: false, // Don't process the data
-                      contentType: false, // Let jQuery set content-type to multipart/form-data
-                      success: function(response) {
-                        if (response.error) {
-                          alert(response.message);
+                // Render the form with the post data
+                $("form#edit_post_form").jsonForm({
+                    schema: postSchema,
+                    form: postForm,
+                    value: {
+                        title: postData.title,
+                        category: JSON.parse(postData.category), // Selected categories
+                        body: postData.body,
+                        image: postData.image
+                    },
+                    onSubmit: function (errors, values) {
+                        if (errors) {
+                            alert("Form has errors!");
                         } else {
-                          $("#edit_post_modal").modal('hide');
-                          Swal.fire('Updated', response.message, 'success');
-                          fetchAllPosts();
+                            let formData = new FormData();
+                            formData.append('id', id); // Add post ID
+                            formData.append('title', values.title);
+                            formData.append('category', JSON.stringify(values.category));
+                            formData.append('body', values.body);
+
+                            // Handle image upload
+                            const imageFile = $('#edit_post_form input[type="file"]')[0].files[0];
+                            if (imageFile) {
+                                formData.append('image', imageFile); // New image
+                            } else {
+                                formData.append('old_image', postData.image); // Keep old image
+                            }
+
+                            // Submit updated post data
+                            $.ajax({
+                                url: '<?= base_url('post/update') ?>',
+                                method: 'post',
+                                data: formData,
+                                contentType: false,
+                                processData: false,
+                                dataType: 'json',
+                                success: function (response) {
+                                    if (response.error) {
+                                        alert(response.message);
+                                    } else {
+                                        $("#edit_post_modal").modal('hide');
+                                        Swal.fire('Updated', response.message, 'success');
+                                        fetchAllPosts(); // Reload the post list
+                                    }
+                                }
+                            });
                         }
-                      }
-                    });
-                  }
-                }
-              });
+                    }
+                });
+
+                // Populate the dropdown after rendering the form
+                populateCategoryDropdownForForm(JSON.parse(postData.category));
             });
-          }
-        });
-      });
+
+            // Open the modal
+            $("#edit_post_modal").modal('show');
+        },
+        error: function () {
+            alert("Error fetching post data.");
+        }
+    });
+});
+
+
+
+
 
       // Trigger form submit manually when Update Post button is clicked
       $("#edit_post_btn").on('click', function() {
@@ -330,6 +372,58 @@
         });
       });
     });
+    $(document).ready(function() {
+      populateCategoryDropdownForForm([]);
+    });
+
+    function populateCategoryDropdownForForm(selectedCategories = []) {
+      $.ajax({
+        url: "<?= base_url('post/getCategories') ?>",
+        type: "GET",
+        dataType: "json",
+        success: function(data) {
+          var categoryDropdown = $('[name="category"]');
+          categoryDropdown.attr('multiple', 'multiple'); // Add multiple attribute
+          categoryDropdown.empty(); // Clear existing options
+
+          // Add placeholder option for Select2
+          categoryDropdown.append('<option></option>');
+
+          // Populate dropdown with categories
+          if (Array.isArray(data.data)) {
+            data.data.forEach(function(category) {
+              var option = $('<option>', {
+                value: category.id,
+                text: category.category_title
+              });
+
+              // Pre-select categories if necessary
+              if (selectedCategories.includes(category.id)) {
+                option.attr('selected', 'selected');
+              }
+
+              categoryDropdown.append(option);
+            });
+          } else {
+            console.error("Error: `data.data` is not an array.");
+            alert("Failed to load categories.");
+          }
+          categoryDropdown.trigger('change');
+          categoryDropdown.select2().next(".select2-container").css("width", "100%");
+
+
+          categoryDropdown.select2({
+            placeholder: "Select categories", // Placeholder text
+            allowClear: true // Enable clearing selections
+          });
+
+          console.log("Dropdown initialized with options:", categoryDropdown.html());
+        },
+        error: function() {
+          alert("Error fetching categories from server.");
+        }
+      });
+    }
   </script>
 
 </body>
