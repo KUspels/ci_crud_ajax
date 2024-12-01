@@ -124,10 +124,11 @@
 
   <!-- Scripts -->
 
-
-
   <script>
     $(document).ready(function() {
+
+      // JSONform SCHEMA
+
       const postSchema = {
         title: {
           title: "Post Title",
@@ -195,19 +196,28 @@
           accept: ".jpg,.jpeg,.png",
         },
       ];
+
+      //ADD POST
+
       // Load form dynamically for Add Post
-      $("#add_post_modal").on('shown.bs.modal', function() {
+      $("#add_post_modal").off('shown.bs.modal').on('shown.bs.modal', async function() {
+        // Reset the form
+        $(this).find('form')[0].reset();
+        $('#categoryDropdown').empty();
+        console.log("Modal initialized and form should render");
+        await populateCategoryDropdownForForm([]);
         $('#jsonform-1-elt-category').select2({
           placeholder: "Select categories",
           allowClear: true,
+          multiple: true,
           dropdownParent: $('#add_post_modal')
-        });
-        populateCategoryDropdownForForm([]);
+        }).trigger('change');
+
+
         console.log("Modal initialized and form should render");
-        $("form#add_post_form").empty();
 
         // Initialize form using jsonForm for add post
-        $("form#add_post_form").jsonForm({
+        $("form#add_post_form").empty().jsonForm({
           schema: postSchema,
           form: postForm,
           onSubmit: function(errors, values) {
@@ -216,7 +226,7 @@
             } else {
               let formData = new FormData();
               formData.append('title', values.title);
-              formData.append('category', JSON.stringify(values.category));
+              formData.append('category', JSON.stringify($('#jsonform-1-elt-category').val() || [])); // Always encode as JSON
               formData.append('body', values.body);
               formData.append('tags', JSON.stringify(values.tags));
               formData.append('image', $('#add_post_form input[type="file"]')[0].files[0]);
@@ -242,6 +252,7 @@
             }
           }
         });
+
         console.log("JSONForm rendered for Add Post");
       });
 
@@ -252,6 +263,8 @@
         // Trigger the form submit by calling jsonForm's onSubmit method
         $("form#add_post_form").submit();
       });
+
+      //EDIT POST
 
       $(document).on('click', '.post_edit_btn', function() {
         const id = $(this).attr('id'); // Get post ID
@@ -272,7 +285,8 @@
                 allowClear: true,
                 dropdownParent: $('#edit_post_modal')
               });
-
+              const categoryDropdown = $('#jsonform-1-elt-category');
+              populateCategoryDropdownForForm(postData.category || []); // Initialize with post data categories
               // Clear and initialize the form
               $("form#edit_post_form").empty();
 
@@ -282,13 +296,21 @@
                 form: postForm,
                 value: {
                   title: postData.title,
-                  category: Array.isArray(postData.category) ?
-                    postData.category :
-                    JSON.parse(postData.category || "[]"), // Ensure valid category data
+                  category: (() => {
+                    if (Array.isArray(postData.category)) {
+                      return postData.category;
+                    }
+                    try {
+                      return JSON.parse(postData.category || "[]"); // Parse valid JSON or default to an empty array
+                    } catch (error) {
+                      console.error("Invalid JSON for categories:", postData.category);
+                      return []; // Default to an empty array on error
+                    }
+                  })(),
+
                   body: postData.body,
                   tags: Array.isArray(postData.tags) ?
-                    postData.tags :
-                    JSON.parse(postData.tags || "[]"),
+                    postData.tags : JSON.parse(postData.tags || "[]"),
                   image: postData.image
                 },
                 onSubmit: function(errors, values) {
@@ -299,7 +321,7 @@
                     formData.append('id', id); // Add post ID
                     formData.append('title', values.title);
                     const category = Array.isArray(values.category) ? values.category : [];
-                    formData.append('category', JSON.stringify(category));
+                    formData.append('category', JSON.stringify($('#jsonform-1-elt-category').val() || [])); // Send as JSON array
                     formData.append('body', values.body);
                     const tags = Array.isArray(values.tags) ? values.category : [];
                     formData.append('tags', JSON.stringify(tags));
@@ -347,17 +369,13 @@
         });
       });
 
-
-
-
-
       // Trigger form submit manually when Update Post button is clicked
       $("#edit_post_btn").on('click', function() {
         // Trigger the form submit by calling jsonForm's onSubmit method
         $("form#edit_post_form").submit();
       });
 
-      // Fetch all posts
+      // FETCH ALL POSTS
       function fetchAllPosts() {
         $.ajax({
           url: '<?= base_url('post/fetch') ?>',
@@ -370,7 +388,8 @@
 
       fetchAllPosts();
 
-      // Delete post ajax request
+      // DELETE POST AJAX REQUEST
+
       $(document).delegate('.post_delete_btn', 'click', function(e) {
         e.preventDefault();
         const id = $(this).attr('id');
@@ -400,7 +419,8 @@
         })
       });
 
-      // Post detail ajax request
+      // POST DETAIL AJAX REQUEST
+
       $(document).delegate('.post_detail_btn', 'click', function(e) {
         e.preventDefault();
         const id = $(this).attr('id');
@@ -422,30 +442,46 @@
       populateCategoryDropdownForForm([]);
     });
 
+    // POPULATE CATEGORY DROPDOWN
+
     function populateCategoryDropdownForForm(selectedCategories = []) {
+      console.log("populateCategoryDropdownForForm called");
+
+      // Clear and parse selected categories, ensuring it's always an array
+      if (!Array.isArray(selectedCategories)) {
+        try {
+          selectedCategories = JSON.parse(selectedCategories) || [];
+        } catch (error) {
+          console.error("Error parsing selected categories:", error);
+          selectedCategories = [];
+        }
+      }
+
+      // AJAX call to fetch categories
       $.ajax({
-        url: "<?= base_url('post/getCategories') ?>",
+        url: "<?= base_url('post/getCategories') ?>", // Correct endpoint
         type: "GET",
         dataType: "json",
         success: function(data) {
-          var categoryDropdown = $('[name="category"]');
-          categoryDropdown.attr('multiple', 'multiple'); // Add multiple attribute
-          categoryDropdown.empty(); // Clear existing options
+          let categoryDropdown = $('#jsonform-1-elt-category');
 
-          // Add placeholder option for Select2
+          // Prepare dropdown for multiple selections and clear existing options
+          categoryDropdown.attr('multiple', 'multiple').empty();
+
+          // Add a placeholder option for Select2
           categoryDropdown.append('<option></option>');
 
-          // Populate dropdown with categories
+          // Populate dropdown with fetched categories
           if (Array.isArray(data.data)) {
             data.data.forEach(function(category) {
-              var option = $('<option>', {
-                value: category.id.toString(), // Ensure value is string
+              let option = $('<option>', {
+                value: category.id.toString(), // Ensure value is a string
                 text: category.category_title
               });
 
               // Pre-select categories if necessary
-              if (selectedCategories.includes(category.id)) {
-                option.attr('selected', 'selected');
+              if (selectedCategories.includes(category.id.toString())) {
+                option.prop('selected', true);
               }
 
               categoryDropdown.append(option);
@@ -454,19 +490,21 @@
             console.error("Error: `data.data` is not an array.");
             alert("Failed to load categories.");
           }
-          categoryDropdown.trigger('change');
-          categoryDropdown.select2().next(".select2-container").css("width", "100%");
 
-
+          // Reinitialize Select2 with options
           categoryDropdown.select2({
             placeholder: "Select categories", // Placeholder text
             allowClear: true // Enable clearing selections
-          });
+          }).trigger('change');
+
+          // Ensure the Select2 container adjusts to full width
+          categoryDropdown.next(".select2-container").css("width", "100%");
 
           console.log("Dropdown initialized with options:", categoryDropdown.html());
         },
         error: function() {
-          alert("Error fetching categories from server.");
+          console.error("Error fetching categories from server.");
+          alert("Error fetching categories. Please try again later.");
         }
       });
     }

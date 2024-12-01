@@ -9,7 +9,18 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="card-title fs-5 fw-bold"><?= $post['title']; ?></div>
-                        <div class="badge bg-dark"><?= $post['category']; ?></div>
+                        
+                        <!-- Decode and display categories -->
+                        <div class="badge bg-dark">
+    <?php
+    if (is_array($post['category'])) {
+        echo implode(', ', $post['category']); // Convert array to comma-separated string
+    } else {
+        echo "No categories"; // Handle empty or invalid data
+    }
+    ?>
+</div>
+
                     </div>
                     <p><?= substr($post['body'], 0, 80); ?>...</p>
                 </div>
@@ -26,6 +37,7 @@
 <?php else: ?>
     <div class="text-secondary text-center fw-bold my-5">No posts found in the database!</div>
 <?php endif; ?>
+
 
 <!-- AJAX Script -->
 <script>

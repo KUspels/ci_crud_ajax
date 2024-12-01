@@ -13,7 +13,8 @@ class PostController extends BaseController
         return view('index');
     }
 
-    // New method to fetch categories
+    // GET CATEGORIES
+
     public function getCategories()
 {
     $categoryModel = new CategoryModel();
@@ -34,7 +35,8 @@ class PostController extends BaseController
 }
 
 
-    // Handle add new post ajax request
+    // ADD 
+
     public function add()
 {
     $file = $this->request->getFile('image');
@@ -55,6 +57,21 @@ class PostController extends BaseController
     $fileName = $file->getRandomName();
     $file->move('uploads/avatar', $fileName);
 
+    $categories = $this->request->getPost('category') ?? '[]';
+log_message('debug', 'Raw category data: ' . print_r($categories, true));
+
+$decodedCategories = is_array($categories) ? $categories : json_decode($categories, true);
+log_message('debug', 'Decoded category data: ' . print_r($decodedCategories, true));
+
+if (!is_array($decodedCategories) || empty($decodedCategories)) {
+    log_message('error', 'Invalid categories data received: ' . print_r($categories, true));
+    return $this->response->setJSON([
+        'error' => true,
+        'message' => 'Invalid categories data.',
+    ]);
+}
+
+
     // Decode tags field
     $tags = $this->request->getPost('tags');
     $decodedTags = is_array($tags) ? $tags : json_decode($tags, true);
@@ -69,8 +86,8 @@ class PostController extends BaseController
     // Prepare data for insertion
     $data = [
         'title' => $this->request->getPost('title'),
-        'category' => json_encode($this->request->getPost('category')), // Save as JSON
-        'tags' => json_encode($this->request->getPost('tags')), // Save as JSON
+        'category' => json_encode($decodedCategories), // Save as JSON
+        'tags' => json_encode($decodedTags), // Save as JSON
         'body' => $this->request->getPost('body'),
         'image' => $fileName,
         'created_at' => date('Y-m-d H:i:s'),
@@ -88,7 +105,8 @@ class PostController extends BaseController
 
     
 
-    // Other methods (edit, update, delete, detail) follow the same pattern
+    // EDIT
+
     public function edit($id = null)
     {
         $postModel = new PostModel();
@@ -102,7 +120,8 @@ class PostController extends BaseController
     }
 
 
-    // Handle fetch all posts ajax request
+    // FETCH
+
     public function fetch()
     {
         $postModel = new PostModel();
@@ -120,6 +139,8 @@ class PostController extends BaseController
             'message' => $data,
         ]);
     }
+
+    // UPDATE
 
     public function update()
     {
@@ -140,6 +161,22 @@ class PostController extends BaseController
                 unlink('uploads/avatar/' . $oldImage);
             }
         }
+
+        // Decode and validate categories
+        $categories = $this->request->getPost('category') ?? '[]';
+log_message('debug', 'Raw category data: ' . print_r($categories, true));
+
+$decodedCategories = is_array($categories) ? $categories : json_decode($categories, true);
+log_message('debug', 'Decoded category data: ' . print_r($decodedCategories, true));
+
+if (!is_array($decodedCategories) || empty($decodedCategories)) {
+    log_message('error', 'Invalid categories data received: ' . print_r($categories, true));
+    return $this->response->setJSON([
+        'error' => true,
+        'message' => 'Invalid categories data.',
+    ]);
+}
+
     
         // Decode tags field
         $tags = $this->request->getPost('tags');
@@ -179,7 +216,7 @@ class PostController extends BaseController
     }
     
 
-
+// DELETE
 
 public function delete($id = null)
 {
@@ -192,6 +229,8 @@ public function delete($id = null)
         'message' => 'Successfully deleted post!',
     ]);
 }
+
+// DETAIL
 
 public function detail($id = null)
 {
