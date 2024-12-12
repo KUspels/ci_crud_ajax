@@ -2,32 +2,60 @@
 <?php if ($posts): ?>
     <?php foreach ($posts as $post): ?>
         <div class="col-md-4">
-            <div class="card shadow-sm">
-                <a href="#" id="<?= $post['id']; ?>" data-bs-toggle="modal" data-bs-target="#detail_post_modal" class="post_detail_btn">
-                    <img src="uploads/avatar/<?= $post['image']; ?>" class="img-fluid card-img-top">
-                </a>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="card-title fs-5 fw-bold"><?= $post['title']; ?></div>
-                        
-                        <!-- Decode and display categories -->
-                        <div class="badge bg-dark">
-    <?php
-    if (is_array($post['category'])) {
-        echo implode(', ', $post['category']); // Convert array to comma-separated string
-    } else {
-        echo "No categories"; // Handle empty or invalid data
-    }
-    ?>
-</div>
+            <div class="card shadow-sm style=cursor: pointer;">
+                <div class="card-body post_detail_btn" id="<?= $post['id']; ?>" data-bs-toggle="modal" data-bs-target="#detail_post_modal">
+                    <!-- Post Title -->
+                    <h5 class="card-title"><?= esc($post['title']); ?></h5>
 
+                    <!-- Display Images and Titles -->
+                    <div class="mb-3">
+                        <?php
+                        $fileData = is_string($post['image']) ? json_decode($post['image'], true) : $post['image'];
+                        if ($fileData && is_array($fileData)):
+                            foreach ($fileData as $file):
+                                $imagePath = base_url('uploads/avatar/' . esc($file['fileName'])); ?>
+                                <div class="d-flex align-items-center mb-2">
+                                    <img src="<?= $imagePath; ?>"
+                                         alt="<?= esc($file['title']); ?>"
+                                         style="width: 50px; height: 50px; object-fit: cover;"
+                                         class="me-2">
+                                    <span><?= esc($file['title']); ?></span>
+                                </div>
+                            <?php endforeach;
+                        else: ?>
+                            <p class="text-muted">No images available.</p>
+                        <?php endif; ?>
                     </div>
-                    <p><?= substr($post['body'], 0, 80); ?>...</p>
+                    <!-- Display Categories -->
+                    <?php if ($post['category'] && is_array($post['category'])): ?>
+                        <div class="mb-2">
+                            <strong>Categories:</strong>
+                            <?php foreach ($post['category'] as $category): ?>
+                                <span class="badge bg-primary"><?= esc($category); ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Display Tags -->
+                    <?php if ($post['tags'] && is_array($post['tags'])): ?>
+                        <div class="mb-2">
+                            <strong>Tags:</strong>
+                            <?php foreach ($post['tags'] as $tag): ?>
+                                <span class="badge bg-secondary"><?= esc($tag); ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    <!-- Post Body -->
+                    <p><?= esc(substr($post['body'], 0, 80)); ?>...</p>
                 </div>
+
+                <!-- Footer with Metadata -->
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <div class="fst-italic"><?= date('d F Y', strtotime($post['created_at'])); ?></div>
                     <div>
+                        <!-- Edit Button -->
                         <a href="#" id="<?= $post['id']; ?>" data-bs-toggle="modal" data-bs-target="#edit_post_modal" class="btn btn-success btn-sm post_edit_btn">Edit</a>
+                        <!-- Delete Button -->
                         <a href="#" id="<?= $post['id']; ?>" class="btn btn-danger btn-sm post_delete_btn">Delete</a>
                     </div>
                 </div>
@@ -39,36 +67,3 @@
 <?php endif; ?>
 
 
-<!-- AJAX Script -->
-<script>
-    $(document).ready(function() {
-        
-        $('.post_detail_btn').on('click', function(e) {
-            e.preventDefault(); 
-            let postId = $(this).attr('id'); 
-
-            $.ajax({
-                url: '<?= site_url('post/detail/'); ?>' + postId, 
-                method: 'GET',
-                dataType: 'json',
-                success: function(response) {
-                    if (!response.error) {
-                        
-                        $('#detail_post_modal .modal-title').text(response.data.title);
-                        $('#detail_post_modal .modal-body').html(`
-                            <img src="uploads/avatar/${response.data.image}" class="img-fluid mb-3">
-                            <p>${response.data.body}</p>
-                        `);
-                    } else {
-                        alert('Failed to load post details!');
-                    }
-                },
-                error: function() {
-                    alert('An error occurred while fetching the post details.');
-                }
-            });
-        });
-
-       
-    });
-</script>

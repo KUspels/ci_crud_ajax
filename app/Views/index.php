@@ -34,43 +34,52 @@
   <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- Include Utils.js -->
+  <script src="<?= base_url('JS/utils.js') ?>"></script>
 
+  <!-- Include Schema.js -->
+  <script src="<?= base_url('JS/schema.js') ?>"></script>
 
+  <script>
+    const BASE_URL = "<?= base_url() ?>";
+  </script>
 
 </head>
 
 <body>
-  <!-- Modal Form: Add Post -->
+  <!-- ADD POST MODAL -->
   <div class="modal fade" id="add_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="inert">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="staticBackdropLabel">Add New Post</h5>
+          <h5 class="modal-title">Add New Post</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-5">
-          <!-- JSONForm will be rendered here -->
-          <form id="add_post_form"></form>
+          <form id="add_post_form" enctype="multipart/form-data">
+            <div id="add-jsonform-render-container"></div>
+          </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="" class="btn btn-primary" id="add_post_btn">Add Post</button>
+          <button type="button" class="btn btn-primary" id="add_post_btn">Add Post</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Form: Edit Post -->
-  <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="inert">
+  <!-- EDIT POST MODAL -->
+  <div class="modal fade" id="edit_post_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="staticBackdropLabel">Edit Post</h5>
+          <h5 class="modal-title">Edit Post</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body p-5">
-          <!-- JSONForm will be rendered here -->
-          <form id="edit_post_form"></form>
+        <div class="modal-body">
+          <form id="edit_post_form" enctype="multipart/form-data">
+            <div id="edit-jsonform-render-container"></div>
+          </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -89,9 +98,10 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <img src="" id="detail_post_image" class="img-fluid">
           <h3 id="detail_post_title" class="mt-3"></h3>
-          <h5 id="detail_post_category"></h5>
+          <div id="detail_post_category" class="mb-3"></div>
+          <div id="detail_post_tags" class="mb-3"></div>
+          <div id="detail_post_images" class="mb-3"></div>
           <p id="detail_post_body"></p>
           <p id="detail_post_created" class="fst-italic"></p>
         </div>
@@ -125,391 +135,333 @@
   <!-- Scripts -->
 
   <script>
-    $(document).ready(function() {
+  $(document).ready(function() {
 
-      // JSONform SCHEMA
+    // FETCH ALL POSTS
+    // Fetches all posts when the page is loaded
+    fetchAllPosts('<?= base_url('post/fetch') ?>');
 
-      const postSchema = {
-        title: {
-          title: "Post Title",
-          type: "string",
-          required: true
-        },
-        category: {
-          title: "Post Category",
-          type: "array",
-          items: {
-            type: "string",
-            enum: [],
-          },
-          required: true
-        },
-        body: {
-          title: "Post Body",
-          type: "string",
-          required: true
-        },
-        tags: {
-          title: "Tags",
-          type: "array",
-          items: {
-            type: "string",
-            title: "Tag"
-          }
-        },
-        image: {
-          title: "Post Image",
-          type: "string",
-          required: true
-        }
-      };
+    // ADD POST
+    // Array to store all files to be uploaded for a new post
+    let allFiles = [];
 
-      const postForm = [{
-          key: "title",
-          type: "text",
-        },
-        {
-          key: "category",
-          type: "select",
-          options: [],
-        },
-        {
-          key: "body",
-          type: "textarea",
-        },
-        {
-          key: "tags",
-          type: "array",
-          items: [{
-            key: "tags[]",
-            type: "text",
-            title: "Tag"
-          }],
-          add: "<a href='#' class='btn btn-outline-dark _jsonform-array-addmore'><b>+ Add Tag</b></a>",
-          remove: "<a href='#' class='btn btn-outline-danger _jsonform-array-delete'><b>- Remove Tag</b></a>"
-
-
-        },
-        {
-          key: "image",
-          type: "file",
-          accept: ".jpg,.jpeg,.png",
-        },
-      ];
-
-      //ADD POST
-
-      // Load form dynamically for Add Post
-      $("#add_post_modal").off('shown.bs.modal').on('shown.bs.modal', async function() {
-        // Reset the form
-        $(this).find('form')[0].reset();
-        $('#categoryDropdown').empty();
-        console.log("Modal initialized and form should render");
-        await populateCategoryDropdownForForm([]);
-        $('#jsonform-1-elt-category').select2({
-          placeholder: "Select categories",
-          allowClear: true,
-          multiple: true,
-          dropdownParent: $('#add_post_modal')
-        }).trigger('change');
-
-
-        console.log("Modal initialized and form should render");
-
-        // Initialize form using jsonForm for add post
-        $("form#add_post_form").empty().jsonForm({
-          schema: postSchema,
-          form: postForm,
-          onSubmit: function(errors, values) {
-            if (errors) {
-              alert("Form has errors!");
-            } else {
-              let formData = new FormData();
-              formData.append('title', values.title);
-              formData.append('category', JSON.stringify($('#jsonform-1-elt-category').val() || [])); // Always encode as JSON
-              formData.append('body', values.body);
-              formData.append('tags', JSON.stringify(values.tags));
-              formData.append('image', $('#add_post_form input[type="file"]')[0].files[0]);
-
-              $.ajax({
-                url: '<?= base_url('post/add') ?>',
-                method: 'post',
-                data: formData,
-                contentType: false,
-                processData: false,
-                dataType: 'json',
-                success: function(response) {
-                  console.log("AJAX success:", response);
-                  if (response.error) {
-                    alert(response.message);
-                  } else {
-                    $("#add_post_modal").modal('hide');
-                    Swal.fire('Added', response.message, 'success');
-                    fetchAllPosts();
-                  }
-                }
-              });
-            }
-          }
-        });
-
-        console.log("JSONForm rendered for Add Post");
-      });
-
-
-
-      // Trigger form submit manually when Add Post button is clicked
-      $("#add_post_btn").on('click', function() {
-        // Trigger the form submit by calling jsonForm's onSubmit method
-        $("form#add_post_form").submit();
-      });
-
-      //EDIT POST
-
-      $(document).on('click', '.post_edit_btn', function() {
-        const id = $(this).attr('id'); // Get post ID
-
-        // Fetch the post data based on the ID
-        $.ajax({
-          url: '<?= base_url('post/edit/') ?>/' + id,
-          method: 'get',
-          dataType: 'json',
-          success: function(response) {
-            const postData = response.message; // Data for the selected post
-            console.log("Fetched post data:", postData);
-
-            // Populate form dynamically
-            $("#edit_post_modal").off('shown.bs.modal').on('shown.bs.modal', function() {
-              $('#jsonform-1-elt-category').select2({
-                placeholder: "Select categories",
-                allowClear: true,
-                dropdownParent: $('#edit_post_modal')
-              });
-              const categoryDropdown = $('#jsonform-1-elt-category');
-              populateCategoryDropdownForForm(postData.category || []); // Initialize with post data categories
-              // Clear and initialize the form
-              $("form#edit_post_form").empty();
-
-              // Render the form with the post data
-              $("form#edit_post_form").jsonForm({
-                schema: postSchema,
-                form: postForm,
-                value: {
-                  title: postData.title,
-                  category: (() => {
-                    if (Array.isArray(postData.category)) {
-                      return postData.category;
-                    }
-                    try {
-                      return JSON.parse(postData.category || "[]"); // Parse valid JSON or default to an empty array
-                    } catch (error) {
-                      console.error("Invalid JSON for categories:", postData.category);
-                      return []; // Default to an empty array on error
-                    }
-                  })(),
-
-                  body: postData.body,
-                  tags: Array.isArray(postData.tags) ?
-                    postData.tags : JSON.parse(postData.tags || "[]"),
-                  image: postData.image
-                },
-                onSubmit: function(errors, values) {
-                  if (errors) {
-                    alert("Form has errors!");
-                  } else {
-                    let formData = new FormData();
-                    formData.append('id', id); // Add post ID
-                    formData.append('title', values.title);
-                    const category = Array.isArray(values.category) ? values.category : [];
-                    formData.append('category', JSON.stringify($('#jsonform-1-elt-category').val() || [])); // Send as JSON array
-                    formData.append('body', values.body);
-                    const tags = Array.isArray(values.tags) ? values.category : [];
-                    formData.append('tags', JSON.stringify(tags));
-
-                    // Handle image upload
-                    const imageFile = $('#edit_post_form input[type="file"]')[0].files[0];
-                    if (imageFile) {
-                      formData.append('image', imageFile); // New image
-                    } else {
-                      formData.append('old_image', postData.image); // Keep old image
-                    }
-
-                    // Submit updated post data
-                    $.ajax({
-                      url: '<?= base_url('post/update') ?>',
-                      method: 'post',
-                      data: formData,
-                      contentType: false,
-                      processData: false,
-                      dataType: 'json',
-                      success: function(response) {
-                        if (response.error) {
-                          alert(response.message);
-                        } else {
-                          $("#edit_post_modal").modal('hide');
-                          Swal.fire('Updated', response.message, 'success');
-                          fetchAllPosts(); // Reload the post list
-                        }
-                      }
-                    });
-                  }
-                }
-              });
-
-              // Populate the dropdown after rendering the form
-              populateCategoryDropdownForForm(JSON.parse(postData.category));
-            });
-
-            // Open the modal
-            $("#edit_post_modal").modal('show');
-          },
-          error: function() {
-            alert("Error fetching post data.");
-          }
-        });
-      });
-
-      // Trigger form submit manually when Update Post button is clicked
-      $("#edit_post_btn").on('click', function() {
-        // Trigger the form submit by calling jsonForm's onSubmit method
-        $("form#edit_post_form").submit();
-      });
-
-      // FETCH ALL POSTS
-      function fetchAllPosts() {
-        $.ajax({
-          url: '<?= base_url('post/fetch') ?>',
-          method: 'get',
-          success: function(response) {
-            $("#show_posts").html(response.message);
-          }
-        });
-      }
-
-      fetchAllPosts();
-
-      // DELETE POST AJAX REQUEST
-
-      $(document).delegate('.post_delete_btn', 'click', function(e) {
-        e.preventDefault();
-        const id = $(this).attr('id');
-        Swal.fire({
-          title: 'Are you sure?',
-          text: "You won't be able to revert this!",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            $.ajax({
-              url: '<?= base_url('post/delete/') ?>/' + id,
-              method: 'get',
-              success: function(response) {
-                Swal.fire(
-                  'Deleted!',
-                  response.message,
-                  'success'
-                )
-                fetchAllPosts();
-              }
-            });
-          }
-        })
-      });
-
-      // POST DETAIL AJAX REQUEST
-
-      $(document).delegate('.post_detail_btn', 'click', function(e) {
-        e.preventDefault();
-        const id = $(this).attr('id');
-        $.ajax({
-          url: '<?= base_url('post/detail/') ?>/' + id,
-          method: 'get',
-          dataType: 'json',
-          success: function(response) {
-            $("#detail_post_image").attr('src', '<?= base_url('uploads/avatar/') ?>/' + response.message.image);
-            $("#detail_post_title").text(response.message.title);
-            $("#detail_post_category").text(response.message.category);
-            $("#detail_post_body").text(response.message.body);
-            $("#detail_post_created").text(response.message.created_at);
-          }
-        });
-      });
-    });
-    $(document).ready(function() {
-      populateCategoryDropdownForForm([]);
+    // Initialize the form for adding a new post when the modal is shown
+    $("#add_post_modal").on('shown.bs.modal', function() {
+      initializeForm("add", allFiles);
     });
 
-    // POPULATE CATEGORY DROPDOWN
+    // Handle the submission of the "Add Post" form
+    $("#add_post_btn").off('click').on('click', function(e) {
+      e.preventDefault();
 
-    function populateCategoryDropdownForForm(selectedCategories = []) {
-      console.log("populateCategoryDropdownForForm called");
+      let formData = new FormData(document.getElementById('add_post_form'));
 
-      // Clear and parse selected categories, ensuring it's always an array
-      if (!Array.isArray(selectedCategories)) {
-        try {
-          selectedCategories = JSON.parse(selectedCategories) || [];
-        } catch (error) {
-          console.error("Error parsing selected categories:", error);
-          selectedCategories = [];
-        }
+      // Collect input values for the post
+      const title = $('[name="title"]').val();
+      const body = $('[name="body"]').val();
+      const categories = $('[name="category"]').val() || [];
+      const tags = collectTags('input[name^="tags"]');
+
+      // Ensure title is added
+      if (!title.trim()) {
+        alert("Please provide a title for the post.");
+        return; 
       }
 
-      // AJAX call to fetch categories
+      // Ensure body is added
+      if (!body.trim()) {
+        alert("Please provide a body for the post.");
+        return; 
+      }
+
+      // Ensure at least one category is uploaded
+      if (categories.length === 0) {
+        alert("Please select at least one category.");
+        return; 
+      }
+
+      // Ensure at least one tag is uploaded
+      if (tags.length === 0) {
+        alert("Please add at least one tag.");
+        return;
+      }
+
+      formData.append('title', title);
+      formData.append('body', body);
+      formData.append('category', JSON.stringify(categories));
+      formData.append('tags', JSON.stringify(tags));
+
+      // Ensure at least one image is uploaded
+      if (allFiles.length === 0) {
+        alert("Please upload at least one image.");
+        return;
+      }
+
+      // Add files and their details to FormData
+      allFiles.forEach(fileObj => formData.append('images[]', fileObj.file));
+
+      let images = [];
+      allFiles.forEach(fileObj => {
+        const previewItem = $(`.add-image-preview-item[data-file-id='${fileObj.id}']`);
+        const titleValue = previewItem.find('input[name^="new_image_titles"]').val() || "";
+        images.push({
+          fileName: fileObj.file.name,
+          title: titleValue
+        });
+      });
+      formData.append('imagesData', JSON.stringify(images));
+
+      // Send the form data via AJAX
+      sendAjaxRequest(
+        '<?= base_url("post/add") ?>',
+        'POST',
+        formData,
+        (response) => {
+          Swal.fire('Success', response.message, 'success');
+          $("#add_post_modal").modal('hide');
+          fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+        },
+        (xhr, status, error) => {
+          console.error("AJAX error:", status, error);
+        }
+      );
+    });
+
+    // ------------------------------------------------------------------------------------------------------------------------------
+    // EDIT POST
+    // Arrays to manage files for editing posts
+    let editAllFiles = [];
+    let removedOldFiles = [];
+
+    // Fetch post data and initialize the "Edit Post" modal
+    $(document).on("click", ".post_edit_btn", function(e) {
+      e.preventDefault();
+      removedOldFiles.length = 0; // Reset removed files list
+
+      const postId = $(this).attr("id");
+
+      // Fetch post details via AJAX
       $.ajax({
-        url: "<?= base_url('post/getCategories') ?>", // Correct endpoint
-        type: "GET",
+        url: `<?= base_url('post/edit/') ?>/${postId}`,
+        method: "GET",
         dataType: "json",
-        success: function(data) {
-          let categoryDropdown = $('#jsonform-1-elt-category');
-
-          // Prepare dropdown for multiple selections and clear existing options
-          categoryDropdown.attr('multiple', 'multiple').empty();
-
-          // Add a placeholder option for Select2
-          categoryDropdown.append('<option></option>');
-
-          // Populate dropdown with fetched categories
-          if (Array.isArray(data.data)) {
-            data.data.forEach(function(category) {
-              let option = $('<option>', {
-                value: category.id.toString(), // Ensure value is a string
-                text: category.category_title
-              });
-
-              // Pre-select categories if necessary
-              if (selectedCategories.includes(category.id.toString())) {
-                option.prop('selected', true);
-              }
-
-              categoryDropdown.append(option);
-            });
+        success: function(response) {
+          if (!response.error) {
+            $("#edit_post_modal").data("post-id", response.message.id);
+            initializeForm("edit", editAllFiles, response.message); // Initialize edit form
+            $("#edit_post_modal").modal("show");
           } else {
-            console.error("Error: `data.data` is not an array.");
-            alert("Failed to load categories.");
+            console.error("Failed to fetch post data:", response.message);
+            Swal.fire("Error", "Failed to fetch post data", "error");
           }
+        },
+        error: function(xhr, status, error) {
+          console.error("Error fetching post data:", status, error);
+          Swal.fire("Error", "An error occurred while fetching post data", "error");
+        },
+      });
 
-          // Reinitialize Select2 with options
-          categoryDropdown.select2({
-            placeholder: "Select categories", // Placeholder text
-            allowClear: true // Enable clearing selections
-          }).trigger('change');
+      // Handle "Mark for Deletion" checkbox for existing images
+      $(document).on("change", ".mark-for-deletion", function() {
+        const fileId = $(this).data("file-id");
+        if ($(this).is(":checked")) {
+          if (!removedOldFiles.includes(fileId)) {
+            removedOldFiles.push(fileId); // Add to removed files list
+          }
+        } else {
+          removedOldFiles = removedOldFiles.filter((id) => id !== fileId); // Remove from removed files list
+        }
+      });
+    });
 
-          // Ensure the Select2 container adjusts to full width
-          categoryDropdown.next(".select2-container").css("width", "100%");
+    // Handle the submission of the "Edit Post" form
+    $(document).on('click', '#edit_post_btn', function(e) {
+      e.preventDefault();
 
-          console.log("Dropdown initialized with options:", categoryDropdown.html());
+      const postId = $('#edit_post_modal').data('post-id');
+      if (!postId) return;
+
+      let formData = new FormData();
+
+      // Collect updated values for the post
+      const title = $('#edit_post_modal').find('[name="title"]').val();
+      const body = $('#edit_post_modal').find('[name="body"]').val();
+      const categories = $('#edit_post_modal').find('[name="category"]').val() || [];
+      const tags = collectTags('input[name^="tags"]');
+
+      // Ensure title is added
+      if (!title.trim()) {
+        alert("Please provide a title for the post.");
+        return; 
+      }
+
+      // Ensure body is added
+      if (!body.trim()) {
+        alert("Please provide a body for the post.");
+        return; 
+      }
+
+      // Ensure at least one category is uploaded
+      if (categories.length === 0) {
+        alert("Please select at least one category.");
+        return; 
+      }
+
+      // Ensure at least one tag is uploaded
+      if (tags.length === 0) {
+        alert("Please add at least one tag.");
+        return;
+      }
+
+      formData.append('id', postId);
+      formData.append('title', title);
+      formData.append('body', body);
+      formData.append('category', JSON.stringify(categories));
+      formData.append('tags', JSON.stringify(tags));
+
+      // Process existing images that are not marked for deletion
+      let existingImages = [];
+      $('.edit-image-preview-item[data-file-id]').each(function() {
+        if ($(this).hasClass('new-image-preview-item')) {
+          return; // Skip new images
+        }
+
+        const fileId = $(this).data('file-id');
+        const title = $(this).find('input[type="text"]').val();
+
+        if (fileId && !removedOldFiles.includes(fileId)) {
+          existingImages.push({
+            fileName: fileId,
+            title: title
+          });
+        }
+      });
+
+      formData.append('existingImages', JSON.stringify(existingImages));
+      formData.append('removedOldFiles', JSON.stringify(removedOldFiles));
+
+      // Add new images and their titles
+      editAllFiles.forEach(({ id, file }) => {
+        formData.append(`newImages[${id}]`, file);
+        const titleInput = $(`input[name="new_image_titles[${id}]"]`).val() || '';
+        formData.append(`new_image_titles[${id}]`, titleInput);
+      });
+
+      // Submit the updated post data via AJAX
+      sendAjaxRequest(
+        '<?= base_url("post/update") ?>',
+        'POST',
+        formData,
+        (response) => {
+          Swal.fire('Updated', response.message, 'success');
+          $("#edit_post_modal").modal('hide');
+          fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+        },
+        (xhr, status, error) => {
+          console.error("AJAX error:", status, error);
+        }
+      );
+    });
+
+    // ------------------------------------------------------------------------------------------------------------------------------
+    // DELETE POST AJAX REQUEST
+    // Handle post deletion with confirmation
+    $(document).delegate('.post_delete_btn', 'click', function(e) {
+      e.preventDefault();
+      const id = $(this).attr('id');
+
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          $.ajax({
+            url: '<?= base_url('post/delete/') ?>/' + id,
+            method: 'get',
+            success: function(response) {
+              Swal.fire('Deleted!', response.message, 'success');
+              fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+            }
+          });
+        }
+      });
+    });
+
+    // ------------------------------------------------------------------------------------------------------------------------------
+    // POST DETAIL AJAX REQUEST
+    // Handle displaying post details in a modal
+    $(document).delegate('.post_detail_btn', 'click', function(e) {
+      e.preventDefault();
+      const id = $(this).attr('id');
+
+      $.ajax({
+        url: '<?= base_url('post/detail/') ?>/' + id,
+        method: 'get',
+        dataType: 'json',
+        success: function(response) {
+          if (!response.error) {
+            const post = response.message;
+
+            // Update modal with post details
+            $("#detail_post_title").text(post.title);
+            $("#detail_post_body").text(post.body);
+            $("#detail_post_created").text(post.created_at);
+
+            // Display categories and tags
+            let categoriesHtml = '';
+            if (post.category && Array.isArray(post.category)) {
+              post.category.forEach(category => {
+                categoriesHtml += `<span class="badge bg-primary me-1">${category}</span>`;
+              });
+            } else {
+              categoriesHtml = '<p class="text-muted">No categories available.</p>';
+            }
+            $("#detail_post_category").html(categoriesHtml);
+
+            let tagsHtml = '';
+            if (post.tags && Array.isArray(post.tags)) {
+              post.tags.forEach(tag => {
+                tagsHtml += `<span class="badge bg-secondary me-1">${tag}</span>`;
+              });
+            } else {
+              tagsHtml = '<p class="text-muted">No tags available.</p>';
+            }
+            $("#detail_post_tags").html(tagsHtml);
+
+            // Display images
+            const imagesContainer = $("#detail_post_images");
+            imagesContainer.empty();
+
+            if (post.image && Array.isArray(post.image)) {
+              post.image.forEach(file => {
+                const baseUrl = '<?= base_url() ?>';
+                const imageElement = `
+                  <div class="mb-2">
+                    <img src="${baseUrl}/uploads/avatar/${file.fileName}" style="width: 100px; height: 100px; object-fit: cover;" alt="${file.title}" />
+                    <p>${file.title}</p>
+                  </div>
+                `;
+                imagesContainer.append(imageElement);
+              });
+            } else {
+              imagesContainer.html('<p class="text-muted">No images available.</p>');
+            }
+          } else {
+            alert('Failed to load post details!');
+          }
         },
         error: function() {
-          console.error("Error fetching categories from server.");
-          alert("Error fetching categories. Please try again later.");
+          alert('An error occurred while fetching the post details.');
         }
       });
-    }
-  </script>
+    });
+  });
+</script>
 
 </body>
-
 </html>

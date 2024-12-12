@@ -13,7 +13,7 @@ class PostModel extends Model {
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['title', 'category', 'body','tags', 'image', 'created_at'];
+    protected $allowedFields    = ['title', 'category', 'body','tags', 'image', 'created_at', 'updated_at'];
 
     // Dates
     protected $useTimestamps = false;
@@ -21,6 +21,7 @@ class PostModel extends Model {
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+    
 
     // Validation
     protected $validationRules      = [];
@@ -30,12 +31,24 @@ class PostModel extends Model {
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert   = [];
+    protected $beforeInsert = ['addTimestamps'];
     protected $afterInsert    = [];
-    protected $beforeUpdate   = [];
+    protected $beforeUpdate = ['updateTimestamps'];
     protected $afterUpdate    = [];
     protected $beforeFind     = [];
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    protected function addTimestamps(array $data)
+    {
+        $data['data']['created_at'] = date('Y-m-d H:i:s');
+        return $data;
+    }
+
+    protected function updateTimestamps(array $data)
+    {
+        $data['data']['updated_at'] = date('Y-m-d H:i:s');
+        return $data;
+    }
 }
