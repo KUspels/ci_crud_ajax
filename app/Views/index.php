@@ -56,6 +56,13 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-5">
+           <!-- Validation Errors -->
+        <?php if (isset($validation)): ?>
+          <div class="alert alert-danger">
+            <?= $validation->listErrors() ?>
+          </div>
+        <?php endif; ?>
+        <!-- Add Post Form -->
           <form id="add_post_form" enctype="multipart/form-data">
             <div id="add-jsonform-render-container"></div>
           </form>
@@ -77,6 +84,13 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+          <!-- Validation Errors -->
+          <?php if (isset($validation)): ?>
+            <div class="alert alert-danger">
+              <?= $validation->listErrors() ?>
+            </div>
+          <?php endif; ?>
+          <!-- Edit Post Form -->
           <form id="edit_post_form" enctype="multipart/form-data">
             <div id="edit-jsonform-render-container"></div>
           </form>
@@ -147,13 +161,13 @@
 
     // Initialize the form for adding a new post when the modal is shown
     $("#add_post_modal").on('shown.bs.modal', function() {
+      $("#add_post_modal .alert.alert-danger").remove();
       initializeForm("add", allFiles);
     });
 
     // Handle the submission of the "Add Post" form
     $("#add_post_btn").off('click').on('click', function(e) {
       e.preventDefault();
-
       let formData = new FormData(document.getElementById('add_post_form'));
 
       // Collect input values for the post
@@ -162,40 +176,10 @@
       const categories = $('[name="category"]').val() || [];
       const tags = collectTags('input[name^="tags"]');
 
-      // Ensure title is added
-      if (!title.trim()) {
-        alert("Please provide a title for the post.");
-        return; 
-      }
-
-      // Ensure body is added
-      if (!body.trim()) {
-        alert("Please provide a body for the post.");
-        return; 
-      }
-
-      // Ensure at least one category is uploaded
-      if (categories.length === 0) {
-        alert("Please select at least one category.");
-        return; 
-      }
-
-      // Ensure at least one tag is uploaded
-      if (tags.length === 0) {
-        alert("Please add at least one tag.");
-        return;
-      }
-
       formData.append('title', title);
       formData.append('body', body);
       formData.append('category', JSON.stringify(categories));
       formData.append('tags', JSON.stringify(tags));
-
-      // Ensure at least one image is uploaded
-      if (allFiles.length === 0) {
-        alert("Please upload at least one image.");
-        return;
-      }
 
       // Add files and their details to FormData
       allFiles.forEach(fileObj => formData.append('images[]', fileObj.file));
@@ -217,9 +201,19 @@
         'POST',
         formData,
         (response) => {
-          Swal.fire('Success', response.message, 'success');
-          $("#add_post_modal").modal('hide');
-          fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+          if(response.error){
+            $("#add_post_modal .alert.alert-danger").remove();
+            let errorHtml = "<div class='alert alert-danger'><ul>";
+            $.each(response.message, function (field, message){
+              errorHtml += `<li>${message}</li>`;
+            });
+            errorHtml += "</ul></div>";
+            $("#add_post_modal .modal-body").prepend(errorHtml);
+          }else{
+            Swal.fire('Success', response.message, 'success');
+            $("#add_post_modal").modal('hide');
+            fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+          }
         },
         (xhr, status, error) => {
           console.error("AJAX error:", status, error);
@@ -235,6 +229,7 @@
 
     // Fetch post data and initialize the "Edit Post" modal
     $(document).on("click", ".post_edit_btn", function(e) {
+      $("#edit_post_modal .alert.alert-danger").remove();
       e.preventDefault();
       removedOldFiles.length = 0; // Reset removed files list
 
@@ -277,7 +272,7 @@
     // Handle the submission of the "Edit Post" form
     $(document).on('click', '#edit_post_btn', function(e) {
       e.preventDefault();
-
+      $("#edit_post_modal .alert.alert-danger").remove();
       const postId = $('#edit_post_modal').data('post-id');
       if (!postId) return;
 
@@ -288,30 +283,6 @@
       const body = $('#edit_post_modal').find('[name="body"]').val();
       const categories = $('#edit_post_modal').find('[name="category"]').val() || [];
       const tags = collectTags('input[name^="tags"]');
-
-      // Ensure title is added
-      if (!title.trim()) {
-        alert("Please provide a title for the post.");
-        return; 
-      }
-
-      // Ensure body is added
-      if (!body.trim()) {
-        alert("Please provide a body for the post.");
-        return; 
-      }
-
-      // Ensure at least one category is uploaded
-      if (categories.length === 0) {
-        alert("Please select at least one category.");
-        return; 
-      }
-
-      // Ensure at least one tag is uploaded
-      if (tags.length === 0) {
-        alert("Please add at least one tag.");
-        return;
-      }
 
       formData.append('id', postId);
       formData.append('title', title);
@@ -353,9 +324,19 @@
         'POST',
         formData,
         (response) => {
-          Swal.fire('Updated', response.message, 'success');
-          $("#edit_post_modal").modal('hide');
-          fetchAllPosts('<?= base_url('post/fetch') ?>'); // Refresh post list
+          if (response.error) {
+            $("#edit_post_modal .alert.alert-danger").remove();
+            let errorHtml = "<div class='alert alert-danger'><ul>";
+            $.each(response.message, function (field, message) {
+              errorHtml += `<li>${message}</li>`;
+            });
+            errorHtml += "</ul></div>";
+            $("#edit_post_modal .modal-body").prepend(errorHtml);
+          } else {
+            Swal.fire("Updated", response.message, "success");
+            $("#edit_post_modal").modal("hide");
+            fetchAllPosts("<?= base_url('post/fetch') ?>"); // Refresh post list
+          }
         },
         (xhr, status, error) => {
           console.error("AJAX error:", status, error);

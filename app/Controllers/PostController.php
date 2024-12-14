@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Controllers\PostValidation;
 use App\Models\PostModel;
 use App\Models\CategoryModel;
 
@@ -35,6 +36,19 @@ class PostController extends BaseController
 
     public function add()
     {
+            // Load validation rules and messages
+        $rules = PostValidation::getValidationRules('add');
+        $messages = PostValidation::getValidationMessages();
+
+        // Validate the request
+        if (!$this->validate($rules, $messages)) {
+            log_message('error', 'Validation failed: ' . print_r($this->validator->getErrors(), true));
+            return $this->response->setJSON([
+                'error' => true,
+                'message' => $this->validator->getErrors(), // Return validation errors
+            ]);
+        }
+
         // Handling multiple image files
         $files = $this->request->getFiles();
         log_message('debug', 'Files received: ' . print_r($files, true));
@@ -113,6 +127,7 @@ class PostController extends BaseController
         ]);
     }
 
+
     public function edit($id = null)
     {
         $postModel = new PostModel();
@@ -186,6 +201,18 @@ class PostController extends BaseController
     public function update()
     {
 
+         // Load validation rules and messages
+         $rules = PostValidation::getValidationRules('edit');
+         $messages = PostValidation::getValidationMessages();
+ 
+         // Validate the request
+         if (!$this->validate($rules, $messages)) {
+             log_message('error', 'Validation failed: ' . print_r($this->validator->getErrors(), true));
+             return $this->response->setJSON([
+                 'error' => true,
+                 'message' => $this->validator->getErrors(), // Return validation errors
+             ]);
+         }
 
         $id = $this->request->getPost('id');
         if (!$id) {

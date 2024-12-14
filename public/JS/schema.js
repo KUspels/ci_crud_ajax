@@ -67,7 +67,12 @@ function generateDynamicIdsForTabs(prefix) {
             title: "Tags",
             type: "tab",
             id: `${prefix}-Tags`,
-            items: ["tags"],
+            items: [
+              {
+                key: "tags",
+                name: "tags",
+              },
+            ],
             add: "<a href='#' class='btn btn-outline-dark _jsonform-array-addmore'><b>+ Add Tag</b></a>",
             remove:
               "<a href='#' class='btn btn-outline-danger _jsonform-array-delete'><b>- Remove Tag</b></a>",
@@ -89,6 +94,9 @@ function generateDynamicIdsForTabs(prefix) {
                       multiple
                       accept="image/*"
                       class="form-control" />
+                    <small class="form-text text-muted">
+                      Allowed formats: JPEG, PNG. Max size: 1 MB per image.
+                    </small>
                     <div id="${prefix}-image-preview-container" class="mt-3"></div>
                   </div>
                 `,
